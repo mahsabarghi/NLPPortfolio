@@ -7,7 +7,6 @@ on IMDB movie reviews using classical NLP techniques and machine learning.
 
 - `notebooks/` → Jupyter notebook with all code
 - `requirements.txt` → Python dependencies for this project
-- `data/` → optional folder for dataset or instructions to download
 
 ## Key Steps
 
