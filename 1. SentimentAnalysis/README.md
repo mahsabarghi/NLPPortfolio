@@ -9,14 +9,14 @@ Note:
 
 ## Key steps:
 
-Importing required libraries
-Loading dataset
-Creating a pandas dataframe
-Text preprocessing
-Feature extraction using TF-IDF
-Split data into train and test sets
-Base model (Logistic Regression) training and performance evaluation
-Multinomial Naive Bayes training and performance evaluation
-Linear Support Vector Classifier training and performance evaluation
-Model comparison
+1. Importing required libraries<br>
+2. Loading dataset<br>
+3. Creating a pandas dataframe<br>
+4. Text preprocessing<br>
+5. Feature extraction using TF-IDF<br>
+6. Split data into train and test sets<br>
+7. Base model (Logistic Regression) training and performance evaluation<br>
+8. Multinomial Naive Bayes training and performance evaluation<br>
+9. Linear Support Vector Classifier training and performance evaluation<br>
+10. Model comparison
 
