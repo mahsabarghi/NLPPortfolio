@@ -3,11 +3,13 @@
 Skeleton for the Ticket Classification Pipeline
 Preprocessing and model will live here
 """
-from sklearn.dummy import DummyClassifier # Just for a dummy run
+# from sklearn.dummy import DummyClassifier # Just for a dummy run
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.base import BaseEstimator, TransformerMixin
-
+# from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+# from sklearn.base import BaseEstimator, TransformerMixin
+import joblib
 class TicketClassifierPipeline:
     def __init__(self):
         # Placeholder for future pipeline
@@ -19,9 +21,8 @@ class TicketClassifierPipeline:
         """
         # Example placeholder: we will fill this later
         self.pipeline = Pipeline([
-            ('vectorizer', CountVectorizer()),  # will use config ngram settings
-            # ('tfidf', TfidfTransformer()),
-            ('classifier', DummyClassifier(strategy='most_frequent'))  # For a dummy run
+            ('tfidf', TfidfVectorizer(max_features=5000, ngram_range=(1,2), stop_words='english')),
+            ('clf', LogisticRegression(max_iter=1000, C=2, class_weight='balanced')) 
         ])
         return self.pipeline
 
@@ -41,3 +42,4 @@ class TicketClassifierPipeline:
         if self.pipeline is None:
             raise ValueError("Pipeline not built or fitted yet.")
         return self.pipeline.predict(X)
+
