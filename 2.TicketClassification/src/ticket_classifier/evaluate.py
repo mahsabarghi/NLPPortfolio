@@ -26,7 +26,7 @@ def evaluate_model(pipeline, X, y, labels=None):
     print(f"Accuracy: {acc:.4f}")
 
     # classification report
-    report = classification_report(y, y_pred, labels=labels)
+    report = classification_report(y, y_pred, labels=labels, zero_division=0)
     print("Classification report:\n")
     print(report)
 

@@ -3,7 +3,7 @@
 Skeleton for the Ticket Classification Pipeline
 Preprocessing and model will live here
 """
-
+from sklearn.dummy import DummyClassifier # Just for a dummy run
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -19,9 +19,9 @@ class TicketClassifierPipeline:
         """
         # Example placeholder: we will fill this later
         self.pipeline = Pipeline([
-            # ('vectorizer', CountVectorizer()),  # will use config ngram settings
+            ('vectorizer', CountVectorizer()),  # will use config ngram settings
             # ('tfidf', TfidfTransformer()),
-            # ('classifier', SomeClassifier())
+            ('classifier', DummyClassifier(strategy='most_frequent'))  # For a dummy run
         ])
         return self.pipeline
 
