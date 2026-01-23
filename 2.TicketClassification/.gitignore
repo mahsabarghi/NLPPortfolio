@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtual environments
+mynlpenv/
+.venv/
+env/
+venv/
+
+# Data
+data/raw/
+data/splits/
+
+# Models
+models/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
