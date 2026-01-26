@@ -1,9 +1,10 @@
 # train.py
-"""
+"""import argparse
 Training script for Ticket Classification Pipeline
 """
 
 import random
+import argparse
 from .data_loader import load_ticket_dataset
 from .pipeline import TicketClassifierPipeline
 from .evaluate import evaluate_model
@@ -18,6 +19,21 @@ random.seed(RANDOM_SEED)
 # Main training function
 # ----------------------
 def main():
+        # ----------------------
+    # Parse arguments
+    # ----------------------
+    parser = argparse.ArgumentParser(description="Train Ticket Classification Pipeline")
+    parser.add_argument(
+        "--classifier",
+        type=str,
+        default="logreg",
+        choices=["logreg", "svc"],
+        help="Classifier to train: logreg (LogisticRegression) or svc (LinearSVC)"
+    )
+    args = parser.parse_args()
+
+    print(f"Selected classifier: {args.classifier}")
+
     # ----------------------
     # Load dataset
     # ----------------------
@@ -28,14 +44,14 @@ def main():
     # ----------------------
     # Initialize the pipeline
     # ----------------------
-    clf_pipeline = TicketClassifierPipeline()
+    clf_pipeline = TicketClassifierPipeline(classifier=args.classifier)
     clf_pipeline.build_pipeline()
 
     # ----------------------
     # Fit the pipeline
     # ----------------------
     clf_pipeline.fit(X_train, y_train)
-    print("Pipeline trained on ticket dataset (Top 5 classes).")
+    print(f"Pipeline trained on ticket dataset (Top 5 classes) using {args.classifier}.")
 
     # ----------------------
     # Evaluate
