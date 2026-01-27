@@ -17,21 +17,13 @@ MODEL_DIR = BASE_DIR / "models"
 RANDOM_SEED = 42
 
 # ----------------------
-# Ticket categories (labels)
+#  Parameters
 # ----------------------
-TICKET_LABELS = [
-    "billing",
-    "technical_issue",
-    "account_management",
-    "feature_request",
-    "general_inquiry"
-]
-
-# ----------------------
-# Hyperparameters
-# ----------------------
-MAX_FEATURES = 5000  # max vocabulary size for text vectorizer
-NGRAM_RANGE = (1, 2)  # unigrams + bigrams
 TEST_SIZE = 0.2
 VAL_SIZE = 0.1
+
+# TF-IDF configuration
+TFIDF_MAX_FEATURES = 5000
+TFIDF_NGRAM_RANGE = (1, 2)
+
 
