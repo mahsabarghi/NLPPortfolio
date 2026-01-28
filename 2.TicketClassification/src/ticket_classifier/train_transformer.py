@@ -63,6 +63,8 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=2e-5, help="Learning rate")
     parser.add_argument("--train-batch", type=int, default=4, help="Train batch size (CPU-friendly)")
     parser.add_argument("--eval-batch", type=int, default=16, help="Eval batch size")
+    parser.add_argument("--run-name", type=str, default="distilbert_run", help="Name for output folder")
+
     args = parser.parse_args()
     
     # ---------------------------------------------------------
@@ -160,6 +162,9 @@ def main() -> None:
     train_small = train_tok.select(range(train_n))
     val_small = val_tok.select(range(val_n))
 
+    test_ds = Dataset.from_dict({"text": X_test, "label": [label2id[y] for y in y_test]})
+    test_tok = test_ds.map(tokenize, batched=True, remove_columns=["text"])
+
     # ---------------------------------------------------------
     # 9) Data collator for dynamic padding (correct batching)
     # ---------------------------------------------------------
@@ -169,7 +174,7 @@ def main() -> None:
     # 10) Trainer configuration 
     # ---------------------------------------------------------
     args_train = TrainingArguments(
-        output_dir="artifacts/transformer_runs",
+        output_dir=f"artifacts/transformer_runs/{args.run_name}",
         eval_strategy="epoch",
         save_strategy="epoch",          # save each epoch so we can keep best later
         learning_rate=args.lr,
@@ -182,7 +187,16 @@ def main() -> None:
         report_to="none",
         use_cpu=True,
         use_mps_device=False,  # <- force CPU on Mac
+
+        # --- Best model selection ---
+        load_best_model_at_end=True,
+        metric_for_best_model="f1_weighted",
+        greater_is_better=True,
+
+        # Keep disk usage reasonable
+        save_total_limit=2,
     )
+
 
     trainer = Trainer(
         model=model,
@@ -198,10 +212,18 @@ def main() -> None:
     # 11) Train + evaluate
     # ---------------------------------------------------------
     trainer.train()
-    metrics = trainer.evaluate()
 
+    val_metrics = trainer.evaluate(eval_dataset=val_small)
     print("\nValidation metrics:")
-    for k, v in metrics.items():
+    for k, v in val_metrics.items():
+        if isinstance(v, float):
+            print(f"{k}: {v:.4f}")
+        else:
+            print(f"{k}: {v}")
+    
+    test_metrics = trainer.evaluate(eval_dataset=test_tok)
+    print("\Test metrics:")
+    for k, v in test_metrics.items():
         if isinstance(v, float):
             print(f"{k}: {v:.4f}")
         else:
@@ -210,11 +232,11 @@ def main() -> None:
     # ---------------------------------------------------------
     # 12) Save model + tokenizer (to do inference next)
     # ---------------------------------------------------------
-    save_dir = "artifacts/transformer_runs/model"
+    save_dir = f"artifacts/transformer_runs/{args.run_name}/best_model"
     trainer.save_model(save_dir)
     tokenizer.save_pretrained(save_dir)
 
-    print("\nSaved model to:", save_dir)
+    print("\nSaved best model to:", save_dir)
     print("Done.")
 
 if __name__ == "__main__":
