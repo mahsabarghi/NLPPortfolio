@@ -26,4 +26,6 @@ VAL_SIZE = 0.1
 TFIDF_MAX_FEATURES = 10000
 TFIDF_NGRAM_RANGE = (1, 3)
 
-
+# Transformer configuration
+TRANSFORMER_MODEL_NAME = "distilbert-base-uncased"
+TRANSFORMER_MAX_LEN = 256
