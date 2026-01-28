@@ -52,11 +52,7 @@ def main() -> None:
     # CLI args
     # ---------------------------------------------------------
     parser = argparse.ArgumentParser(description="Train transformer for ticket classification")
-    parser.add_argument(
-        "--sanity-forward",
-        action="store_true",
-        help="Run a single forward-pass sanity check and exit",
-    )
+    parser.add_argument("--sanity-forward", action="store_true", help="Run a single forward-pass sanity check and exit")
     parser.add_argument("--train-n", type=int, default=3000, help="Number of training samples to use")
     parser.add_argument("--val-n", type=int, default=1000, help="Number of validation samples to use")
     parser.add_argument("--epochs", type=float, default=2.0, help="Number of training epochs")
@@ -64,8 +60,14 @@ def main() -> None:
     parser.add_argument("--train-batch", type=int, default=4, help="Train batch size (CPU-friendly)")
     parser.add_argument("--eval-batch", type=int, default=16, help="Eval batch size")
     parser.add_argument("--run-name", type=str, default="distilbert_run", help="Name for output folder")
-
+    parser.add_argument("--model-name", type=str, default=TRANSFORMER_MODEL_NAME, help="Hugging Face model checkpoint (e.g., distilbert-base-uncased, roberta-base)")
+    parser.add_argument("--max-len", type=int, default=TRANSFORMER_MAX_LEN, help="Max token length (e.g., 128, 256). Higher can improve accuracy but uses more memory.")
     args = parser.parse_args()
+
+    if args.run_name == "distilbert_run":
+        safe_model = args.model_name.replace("/", "_")
+        args.run_name = f"{safe_model}_len{args.max_len}_n{args.train_n}_e{args.epochs}"
+
     
     # ---------------------------------------------------------
     # 1) Load pre-split dataset (train / val / test)
@@ -95,7 +97,7 @@ def main() -> None:
     # 4) Load pretrained tokenizer
     #    This defines how raw text is converted into token IDs
     # ---------------------------------------------------------
-    tokenizer = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
     # ---------------------------------------------------------
     # 5) Tokenization function
@@ -106,7 +108,7 @@ def main() -> None:
         return tokenizer(
             batch["text"], 
             truncation=True, 
-            max_length=TRANSFORMER_MAX_LEN)
+            max_length=args.max_len)
 
     # ---------------------------------------------------------
     # 6) Apply tokenizer to entire datasets
@@ -120,7 +122,7 @@ def main() -> None:
     # 7) Load pretrained transformer model for classification
     # ---------------------------------------------------------
     model = AutoModelForSequenceClassification.from_pretrained(
-        TRANSFORMER_MODEL_NAME,
+        args.model_name,
         num_labels=len(label_names),
         id2label=id2label,
         label2id=label2id,
@@ -222,7 +224,7 @@ def main() -> None:
             print(f"{k}: {v}")
     
     test_metrics = trainer.evaluate(eval_dataset=test_tok)
-    print("\Test metrics:")
+    print("\nTest metrics:")
     for k, v in test_metrics.items():
         if isinstance(v, float):
             print(f"{k}: {v:.4f}")
