@@ -6,8 +6,10 @@ from __future__ import annotations
 # that integrates cleanly with tokenizers, PyTorch, and Trainer
 from datasets import Dataset
 
-# Hugging Face tokenizer for pretrained transformer models
-from transformers import AutoTokenizer
+# Hugging Face tokenizer for pretrained transformer models + model for sequence classification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, DataCollatorWithPadding
+
+import torch
 
 # Project-specific data loader (keeps same splits as classical models)
 from ticket_classifier.data_loader import load_ticket_dataset
@@ -74,20 +76,58 @@ def main() -> None:
     val_tok.set_format(type="torch", columns=cols)
 
     # ---------------------------------------------------------
-    # 8) Sanity checks
+    # 8) Load pretrained transformer model for classification
     # ---------------------------------------------------------
-    print("\nTokenized datasets:")
-    print("train:", train_tok)
-    print("val:  ", val_tok)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        TRANSFORMER_MODEL_NAME,
+        num_labels=len(label_names),
+        id2label=id2label,
+        label2id=label2id,
+    )
 
-    print("\nOne sample (train[0]):")
+    # # ---------------------------------------------------------
+    # # 8) Sanity checks
+    # # ---------------------------------------------------------
+    # print("\nTokenized datasets:")
+    # print("train:", train_tok)
+    # print("val:  ", val_tok)
 
-    sample = train_tok[0]
-    print("\nSample item structure:")
-    print({k: (v.shape if hasattr(v, "shape") else type(v)) for k, v in sample.items()})
-    print("label id:", int(sample["label"]), "=>", id2label[int(sample["label"])])
+    # print("\nOne sample (train[0]):")
+
+    # sample = train_tok[0]
+    # print("\nSample item structure:")
+    # print({k: (v.shape if hasattr(v, "shape") else type(v)) for k, v in sample.items()})
+    # print("label id:", int(sample["label"]), "=>", id2label[int(sample["label"])])
+
+    # print("\nDone.")
+
+    # ---------------------------------------------------------
+    # 9) Single forward pass sanity check (no training)
+    #    Use a data collator to pad variable-length sequences in the batch
+    # ---------------------------------------------------------
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="pt")
+
+    batch_items = [train_tok[i] for i in range(4)]  # list of dicts
+    batch = data_collator(batch_items)              # pads + stacks tensors
+
+    # labels are not included by the collator automatically from "label" sometimes, so add them explicitly
+    batch["labels"] = torch.stack([x["label"] for x in batch_items])
+
+    with torch.no_grad():
+        outputs = model(**batch) # Pass the whole batch
+
+    # Logits shape should be: (batch_size, num_labels)
+    print("\nForward pass sanity check:")
+    print("loss:", float(outputs.loss))
+    print("logits shape:", tuple(outputs.logits.shape))
+
+    preds = torch.argmax(outputs.logits, dim=-1)
+    print("pred ids:", preds.tolist())
+    print("true ids:", batch["labels"].tolist())
+    print("pred labels:", [id2label[int(i)] for i in preds.tolist()])
 
     print("\nDone.")
+
 
 if __name__ == "__main__":
     main()
