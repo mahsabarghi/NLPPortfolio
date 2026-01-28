@@ -6,18 +6,65 @@ from __future__ import annotations
 # that integrates cleanly with tokenizers, PyTorch, and Trainer
 from datasets import Dataset
 
-# Hugging Face tokenizer for pretrained transformer models + model for sequence classification
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, DataCollatorWithPadding
+# Hugging Face components:
+# - AutoTokenizer: converts raw text into model-specific token IDs
+# - AutoModelForSequenceClassification: pretrained transformer with a classification head
+# - DataCollatorWithPadding: dynamically pads variable-length sequences for batching
+# - TrainingArguments: configuration object for the training loop (epochs, batch size, logging, etc.)
+# - Trainer: high-level API that handles training, evaluation, and checkpointing
+from transformers import (
+    AutoTokenizer, 
+    AutoModelForSequenceClassification, 
+    DataCollatorWithPadding,
+    TrainingArguments, 
+    Trainer
+)
 
 import torch
+import argparse
 
 # Project-specific data loader (keeps same splits as classical models)
 from ticket_classifier.data_loader import load_ticket_dataset
 
 # Centralized config for reproducibility and tuning
-from ticket_classifier.config import TRANSFORMER_MODEL_NAME, TRANSFORMER_MAX_LEN
+from ticket_classifier.config import RANDOM_SEED, TRANSFORMER_MODEL_NAME, TRANSFORMER_MAX_LEN
+
+import numpy as np
+from sklearn.metrics import accuracy_score, f1_score
+
+
+def compute_metrics(eval_pred):
+    """
+    Compute evaluation metrics from Trainer predictions.
+    eval_pred is a tuple: (logits, labels)
+    """
+    logits, labels = eval_pred
+    preds = np.argmax(logits, axis=-1)
+
+    return {
+        "accuracy": accuracy_score(labels, preds),
+        "f1_weighted": f1_score(labels, preds, average="weighted"),
+        "f1_macro": f1_score(labels, preds, average="macro"),
+    }
 
 def main() -> None:
+    # ---------------------------------------------------------
+    # CLI args
+    # ---------------------------------------------------------
+    parser = argparse.ArgumentParser(description="Train transformer for ticket classification")
+    parser.add_argument(
+        "--sanity-forward",
+        action="store_true",
+        help="Run a single forward-pass sanity check and exit",
+    )
+    parser.add_argument("--train-n", type=int, default=3000, help="Number of training samples to use")
+    parser.add_argument("--val-n", type=int, default=1000, help="Number of validation samples to use")
+    parser.add_argument("--epochs", type=float, default=2.0, help="Number of training epochs")
+    parser.add_argument("--lr", type=float, default=2e-5, help="Learning rate")
+    parser.add_argument("--train-batch", type=int, default=4, help="Train batch size (CPU-friendly)")
+    parser.add_argument("--eval-batch", type=int, default=16, help="Eval batch size")
+    args = parser.parse_args()
+    
     # ---------------------------------------------------------
     # 1) Load pre-split dataset (train / val / test)
     #    This reuses the exact same data pipeline as TF-IDF models
@@ -68,15 +115,7 @@ def main() -> None:
     val_tok = val_ds.map(tokenize, batched=True, remove_columns=["text"])
 
     # ---------------------------------------------------------
-    # 7) Set PyTorch tensor format
-    #    This makes the dataset compatible with DataLoader / Trainer
-    # ---------------------------------------------------------
-    cols = ["input_ids", "attention_mask", "label"]
-    train_tok.set_format(type="torch", columns=cols)
-    val_tok.set_format(type="torch", columns=cols)
-
-    # ---------------------------------------------------------
-    # 8) Load pretrained transformer model for classification
+    # 7) Load pretrained transformer model for classification
     # ---------------------------------------------------------
     model = AutoModelForSequenceClassification.from_pretrained(
         TRANSFORMER_MODEL_NAME,
@@ -85,49 +124,98 @@ def main() -> None:
         label2id=label2id,
     )
 
-    # # ---------------------------------------------------------
-    # # 8) Sanity checks
-    # # ---------------------------------------------------------
-    # print("\nTokenized datasets:")
-    # print("train:", train_tok)
-    # print("val:  ", val_tok)
+    # ---------------------------------------------------------
+    # Optional: Single forward pass sanity check (no training)
+    # ---------------------------------------------------------
+    if args.sanity_forward:
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="pt")
 
-    # print("\nOne sample (train[0]):")
+        batch_items = [train_tok[i] for i in range(4)]  # list of dicts
+        batch = data_collator(batch_items)              # pads + stacks tensors
 
-    # sample = train_tok[0]
-    # print("\nSample item structure:")
-    # print({k: (v.shape if hasattr(v, "shape") else type(v)) for k, v in sample.items()})
-    # print("label id:", int(sample["label"]), "=>", id2label[int(sample["label"])])
+        # labels are not included by the collator automatically from "label" sometimes, so add them explicitly
+        batch["labels"] = torch.stack([x["label"] for x in batch_items])
 
-    # print("\nDone.")
+        with torch.no_grad():
+            outputs = model(**batch) # Pass the whole batch
+
+        # Logits shape should be: (batch_size, num_labels)
+        print("\nForward pass sanity check:")
+        print("loss:", float(outputs.loss))
+        print("logits shape:", tuple(outputs.logits.shape))
+
+        preds = torch.argmax(outputs.logits, dim=-1)
+        print("pred ids:", preds.tolist())
+        print("true ids:", batch["labels"].tolist())
+        print("pred labels:", [id2label[int(i)] for i in preds.tolist()])
+
+        print("\nDone.")
+        return # to exit the current function (which is main) to do only sanity check
+    # ---------------------------------------------------------
+    # 8) Training subset (configurable via CLI)
+    # ---------------------------------------------------------
+    train_n = min(args.train_n, len(train_tok))
+    val_n = min(args.val_n, len(val_tok))
+
+    train_small = train_tok.select(range(train_n))
+    val_small = val_tok.select(range(val_n))
 
     # ---------------------------------------------------------
-    # 9) Single forward pass sanity check (no training)
-    #    Use a data collator to pad variable-length sequences in the batch
+    # 9) Data collator for dynamic padding (correct batching)
     # ---------------------------------------------------------
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="pt")
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-    batch_items = [train_tok[i] for i in range(4)]  # list of dicts
-    batch = data_collator(batch_items)              # pads + stacks tensors
+    # ---------------------------------------------------------
+    # 10) Trainer configuration 
+    # ---------------------------------------------------------
+    args_train = TrainingArguments(
+        output_dir="artifacts/transformer_runs",
+        eval_strategy="epoch",
+        save_strategy="epoch",          # save each epoch so we can keep best later
+        learning_rate=args.lr,
+        per_device_train_batch_size=args.train_batch,
+        per_device_eval_batch_size=args.eval_batch,
+        num_train_epochs=args.epochs,
+        weight_decay=0.01,
+        logging_steps=50,
+        seed=RANDOM_SEED,
+        report_to="none",
+        use_cpu=True,
+        use_mps_device=False,  # <- force CPU on Mac
+    )
 
-    # labels are not included by the collator automatically from "label" sometimes, so add them explicitly
-    batch["labels"] = torch.stack([x["label"] for x in batch_items])
+    trainer = Trainer(
+        model=model,
+        args=args_train,
+        train_dataset=train_small,
+        eval_dataset=val_small,
+        tokenizer=tokenizer,
+        data_collator=data_collator,
+        compute_metrics=compute_metrics,
+    )
 
-    with torch.no_grad():
-        outputs = model(**batch) # Pass the whole batch
+    # ---------------------------------------------------------
+    # 11) Train + evaluate
+    # ---------------------------------------------------------
+    trainer.train()
+    metrics = trainer.evaluate()
 
-    # Logits shape should be: (batch_size, num_labels)
-    print("\nForward pass sanity check:")
-    print("loss:", float(outputs.loss))
-    print("logits shape:", tuple(outputs.logits.shape))
+    print("\nValidation metrics:")
+    for k, v in metrics.items():
+        if isinstance(v, float):
+            print(f"{k}: {v:.4f}")
+        else:
+            print(f"{k}: {v}")
 
-    preds = torch.argmax(outputs.logits, dim=-1)
-    print("pred ids:", preds.tolist())
-    print("true ids:", batch["labels"].tolist())
-    print("pred labels:", [id2label[int(i)] for i in preds.tolist()])
+    # ---------------------------------------------------------
+    # 12) Save model + tokenizer (to do inference next)
+    # ---------------------------------------------------------
+    save_dir = "artifacts/transformer_runs/model"
+    trainer.save_model(save_dir)
+    tokenizer.save_pretrained(save_dir)
 
-    print("\nDone.")
-
+    print("\nSaved model to:", save_dir)
+    print("Done.")
 
 if __name__ == "__main__":
     main()

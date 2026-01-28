@@ -28,4 +28,4 @@ TFIDF_NGRAM_RANGE = (1, 3)
 
 # Transformer configuration
 TRANSFORMER_MODEL_NAME = "distilbert-base-uncased"
-TRANSFORMER_MAX_LEN = 256
+TRANSFORMER_MAX_LEN = 128 # reduced from 256 to lower memory usage on CPU/MPS. Can be increased (e.g., 256) if more memory is available
