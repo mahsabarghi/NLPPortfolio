@@ -7,9 +7,9 @@ from pathlib import Path
 import json
 from collections import Counter
 from sklearn.model_selection import train_test_split
-from .config import RAW_DATA_DIR, RANDOM_SEED
+from .config import RAW_DATA_DIR, RANDOM_SEED, TEST_SIZE, VAL_SIZE
 
-def load_ticket_dataset(test_size=0.2, val_size=0.1, random_seed=RANDOM_SEED):
+def load_ticket_dataset(test_size=TEST_SIZE, val_size=VAL_SIZE, random_seed=RANDOM_SEED):
     """
     Load ticket dataset, keep top 5 classes,  and split into train, validation, and test sets.
 
