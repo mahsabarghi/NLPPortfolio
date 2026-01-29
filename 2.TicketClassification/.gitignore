@@ -17,6 +17,7 @@ data/splits/
 
 # Models
 models/
+artifacts/
 
 # Logs
 *.log
