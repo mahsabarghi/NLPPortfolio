@@ -1,0 +1,22 @@
+# Venvs / caches
+mynlpenv/
+.venv/
+__pycache__/
+*.pyc
+
+# Git
+.git/
+.gitignore
+
+# Data/tests (not needed for serving)
+data/
+tests/
+*.ipynb
+
+# Ignore all artifacts by default...
+artifacts/*
+# ...but keep the baked model folder
+!artifacts/transformer_runs/
+!artifacts/transformer_runs/roberta-base_len128_n11711_e3.0/
+!artifacts/transformer_runs/roberta-base_len128_n11711_e3.0/best_model/
+

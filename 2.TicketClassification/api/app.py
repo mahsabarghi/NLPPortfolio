@@ -5,6 +5,7 @@ Serves a fine-tuned Hugging Face transformer model (RoBERTa)
 """
 
 import torch
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -14,8 +15,8 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 # ----------------------
 # Config
 # ----------------------
-MODEL_DIR = Path("artifacts/transformer_runs/roberta-base_len128_n11711_e3.0/best_model")
-MAX_LEN = 128
+MODEL_DIR = Path(os.getenv("MODEL_DIR", "/app/model"))
+MAX_LEN = int(os.getenv("MAX_LEN", "128"))
 
 # ----------------------
 # Initialize FastAPI
