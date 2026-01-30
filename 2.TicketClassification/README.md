@@ -202,7 +202,7 @@ Transformer-based models are fine-tuned for sequence classification using **Hugg
 - Input: Raw ticket text
 
 - Output:
-   - predicted_label:Product category (Top 5 classes)
+   - predicted_label: Product category (Top 5 classes)
    - confidence score
 
 **🔹 Tokenization**
@@ -276,9 +276,13 @@ The best-performing transformer model is served via a **FastAPI** inference API 
 either with Python or Docker.
 
 ### 1) Run the API locally (without Docker)
+Set the model path:
+```
+MODEL_DIR="artifacts/transformer_runs/roberta-base_len128_n11711_e3.0/best_model"
+```
 
 Start the server:
-```bash
+```
 PYTHONPATH=src uvicorn api.app:app --reload
 ```
 
