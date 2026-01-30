@@ -18,9 +18,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src /app/src
 COPY api /app/api
 
-# Copy the fine-tuned model into the image (self-contained deployment)
-COPY artifacts/transformer_runs/roberta-base_len128_n11711_e3.0/best_model /app/model
-
 
 # Make src importable inside the container
 ENV PYTHONPATH=/app/src
