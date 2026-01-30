@@ -15,7 +15,18 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 # ----------------------
 # Config
 # ----------------------
-MODEL_DIR = Path(os.getenv("MODEL_DIR", "/app/model"))
+# Priority:
+# 1) MODEL_ID env var (Hugging Face Hub)
+# 2) Local Docker-baked model path
+MODEL_ID = os.getenv("MODEL_ID")  # e.g. "mahsabr/ticket-classifier-roberta-top5"
+LOCAL_MODEL_DIR = Path("/app/model")
+
+# Decide where to load the model from
+if MODEL_ID:
+    load_from = MODEL_ID
+else:
+    load_from = str(LOCAL_MODEL_DIR)
+
 MAX_LEN = int(os.getenv("MAX_LEN", "128"))
 
 # ----------------------
@@ -24,14 +35,14 @@ MAX_LEN = int(os.getenv("MAX_LEN", "128"))
 app = FastAPI(
     title="Ticket Classification API",
     description="Predict ticket categories using a fine-tuned transformer model",
-    version="1.0"
+    version="1.1"
 )
 
 # ----------------------
 # Load model once at startup (fast inference)
 # ----------------------
-tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_DIR)
+tokenizer = AutoTokenizer.from_pretrained(load_from)
+model = AutoModelForSequenceClassification.from_pretrained(load_from)
 model.eval()
 
 # Use CPU by default (portable & consistent with training runs)
