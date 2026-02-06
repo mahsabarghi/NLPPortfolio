@@ -384,13 +384,68 @@ curl http://127.0.0.1:8000/health
 {"status":"ok"}
 ```
 
+.
+
+## 🖥️ Web Interface (HTML Landing Page)
+
+In addition to the REST API, the project includes a simple HTML landing page for interactive predictions.
+
+This allows users to:
+
+- Paste a ticket/complaint text
+
+- Click a button to run inference
+
+- View the predicted category and confidence score instantly
+
+> The UI is served directly by FastAPI (no separate frontend stack).
+
+**🐳 Docker Support**
+
+The landing page is implemented using container-safe paths, ensuring it works consistently:
+
+- Local development
+
+- Docker containers
+
+- Cloud deployments (e.g. Cloud Run)
+
+> No extra configuration is required.
+
+### ▶️ Access the Web UI
+
+When the API is running (locally or via Docker), open:
+
+```
+http://127.0.0.1:8000/
+```
+
+### How It Works
+
+- The page is served from a static HTML file.
+
+- User input is sent to the /predict endpoint via fetch
+
+- The API returns:
+  - predicted_label
+
+  - confidence (softmax probability)
+
+> This provides a lightweight demo experience without additional frontend tooling.
+
 **✅ Summary**
 
-- Model is hosted on Hugging Face Hub
+- Fine-tuned transformer model hosted on Hugging Face Hub
 
-- API auto-downloads model on startup
+- FastAPI inference service with confidence scores
 
-- Works locally and in Docker
+- Model auto-downloads at startup (no local artifacts required)
+
+- Dockerized for reproducible deployment
+
+- Includes a web-based HTML landing page for interactive predictions
+
+- Runs consistently locally, in Docker, and in cloud environments
 
 ## ☁️ Cloud Deployment (Ready)
 
