@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from api.schemas import Ticket, Prediction
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -77,6 +78,10 @@ def predict(ticket: Ticket):
         predicted_label=pred_label,
         confidence=confidence
     )
+
+@app.get("/")
+def landing_page():
+    return FileResponse("api/static/index.html")
 
 @app.get("/health")
 def health():

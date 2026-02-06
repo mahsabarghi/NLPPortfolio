@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ticket Classifier</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; max-width: 800px; margin: 40px auto; padding: 0 16px; }
+    textarea { width: 100%; min-height: 160px; padding: 12px; font-size: 16px; }
+    button { margin-top: 12px; padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    .card { margin-top: 16px; padding: 14px; border: 1px solid #ddd; border-radius: 10px; }
+    .muted { color: #666; font-size: 14px; }
+    .error { color: #b00020; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Ticket Classifier</h1>
+  <p class="muted">Enter a complaint/ticket text and get a predicted category + confidence.</p>
+
+  <label for="text"><strong>Ticket text</strong></label><br/>
+  <textarea id="text" placeholder="Type or paste a ticket here..."></textarea><br/>
+  <button id="btn">Predict</button>
+
+  <div id="result" class="card" style="display:none;"></div>
+
+  <script>
+    const btn = document.getElementById("btn");
+    const textArea = document.getElementById("text");
+    const result = document.getElementById("result");
+
+    function show(html) {
+      result.style.display = "block";
+      result.innerHTML = html;
+    }
+
+    btn.addEventListener("click", async () => {
+      const text = textArea.value.trim();
+      if (!text) {
+        show(`<div class="error"><strong>Error:</strong> Please enter some text.</div>`);
+        return;
+      }
+
+      show(`<div class="muted">Running prediction...</div>`);
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          show(`<div class="error"><strong>API error:</strong> ${resp.status}<br/><pre>${errText}</pre></div>`);
+          return;
+        }
+
+        const data = await resp.json();
+        const confPct = (data.confidence * 100).toFixed(2);
+
+        show(`
+          <div><strong>Predicted label:</strong> <code>${data.predicted_label}</code></div>
+          <div><strong>Confidence:</strong> ${confPct}%</div>
+          <hr/>
+          <div class="muted"><strong>Input:</strong><br/>${data.text.replaceAll("<","&lt;").replaceAll(">","&gt;")}</div>
+        `);
+      } catch (e) {
+        show(`<div class="error"><strong>Network error:</strong> ${e}</div>`);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
