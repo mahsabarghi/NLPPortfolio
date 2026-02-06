@@ -81,7 +81,8 @@ def predict(ticket: Ticket):
 
 @app.get("/")
 def landing_page():
-    return FileResponse("api/static/index.html")
+    base_dir = Path(__file__).resolve().parent  # api/
+    return FileResponse(base_dir / "static" / "index.html")
 
 @app.get("/health")
 def health():
