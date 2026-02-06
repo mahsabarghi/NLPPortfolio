@@ -388,6 +388,8 @@ curl http://127.0.0.1:8000/health
 
 ## 🖥️ Web Interface (HTML Landing Page)
 
+![Web UI demo](assets/web_ui_demo.png)
+
 In addition to the REST API, the project includes a simple HTML landing page for interactive predictions.
 
 This allows users to:
@@ -399,8 +401,6 @@ This allows users to:
 - View the predicted category and confidence score instantly
 
 > The UI is served directly by FastAPI (no separate frontend stack).
-
-![Web UI demo](assets/web-ui-demo.png)
 
 **🐳 Docker Support**
 
@@ -433,7 +433,7 @@ http://127.0.0.1:8000/
 
   - confidence (softmax probability)
 
-> This provides a lightweight demo experience without additional frontend tooling.
+> This provides a lightweight demo experience without additional frontend tooling
 
 ## ✅ Summary
 
