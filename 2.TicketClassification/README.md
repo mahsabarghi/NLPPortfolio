@@ -400,6 +400,8 @@ This allows users to:
 
 > The UI is served directly by FastAPI (no separate frontend stack).
 
+![Web UI demo](assets/web-ui-demo.png)
+
 **🐳 Docker Support**
 
 The landing page is implemented using container-safe paths, ensuring it works consistently:
@@ -433,7 +435,7 @@ http://127.0.0.1:8000/
 
 > This provides a lightweight demo experience without additional frontend tooling.
 
-**✅ Summary**
+## ✅ Summary
 
 - Fine-tuned transformer model hosted on Hugging Face Hub
 
